@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "distributed-kv-store"
+version = "0.1.0"
+description = "A distributed key-value store with WAL durability and replication."
+authors = ["Manav Anandani <manavanandani304@gmail.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+uvloop = "^0.19.0"  # Fast Drop-in replacement for asyncio event loop
+structlog = "^24.1.0"  # Structured Logging
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-asyncio = "^0.23.6"
+black = "^24.3.0"
+ruff = "^0.3.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
