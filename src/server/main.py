@@ -2,7 +2,7 @@ import asyncio
 import structlog
 from typing import Optional
 import signal
-import sys
+from src.storage.persistent_engine import PersistentStorageEngine
 
 logger = structlog.get_logger()
 
@@ -12,6 +12,7 @@ class KVServer:
         self.port = port
         self.server: Optional[asyncio.AbstractServer] = None
         self.running = False
+        self.engine = PersistentStorageEngine()
 
     async def handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         addr = writer.get_extra_info('peername')
@@ -19,30 +20,45 @@ class KVServer:
         
         try:
             while self.running:
-                data = await reader.read(1024)
+                data = await reader.read(4096)
                 if not data:
                     break
                 
-                message = data.decode().strip()
-                logger.debug("command_received", cmd=message)
+                # Simple Text Protocol: COMMAND key [value]
+                parts = data.decode().strip().split(maxsplit=2)
+                if not parts:
+                    continue
                 
-                # Mock Processing Logic
-                response = f"OK: {message}\n"
+                cmd = parts[0].upper()
+                response = "ERROR: Unknown Command\n"
+                
+                if cmd == "GET" and len(parts) == 2:
+                    val = self.engine.get(parts[1])
+                    response = f"{val}\n" if val else "(nil)\n"
+                
+                elif cmd == "SET" and len(parts) >= 3:
+                    self.engine.set(parts[1], parts[2])
+                    response = "OK\n"
+                
+                elif cmd == "DEL" and len(parts) == 2:
+                    deleted = self.engine.delete(parts[1])
+                    response = "1\n" if deleted else "0\n"
+                
                 writer.write(response.encode())
                 await writer.drain()
+                
         except Exception as e:
             logger.error("connection_error", error=str(e))
         finally:
-            logger.info("client_disconnected", address=addr)
             writer.close()
-            await writer.wait_closed()
 
     async def start(self):
+        # Start Snapshot loop in background (Not implemented in async loop for brevity)
         self.server = await asyncio.start_server(
             self.handle_client, self.host, self.port
         )
         self.running = True
-        logger.info("server_started", host=self.host, port=self.port)
+        logger.info("server_started_persistent", host=self.host, port=self.port)
         
         async with self.server:
             await self.server.serve_forever()
