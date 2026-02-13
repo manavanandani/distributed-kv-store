@@ -27,24 +27,24 @@ The architecture mimics a production-grade KV store with distinct layers for net
 
 ```mermaid
 graph TD
-    Client[Client App] -->|TCP Connection| Server[TCP Server (AsyncIO)]
-    Server -->|Parse Command| Protocol[Protocol Parser (RESP-like)]
-    Protocol -->|Execute| Engine[Storage Engine]
+    Client["Client App"] -->|TCP Connection| Server["TCP Server (AsyncIO)"]
+    Server -->|Parse Command| Protocol["Protocol Parser (RESP-like)"]
+    Protocol -->|Execute| Engine["Storage Engine"]
     
     subgraph "Core Engine"
-        Engine -->|Read/Write| MemTable[In-Memory Hash Map]
-        Engine -->|Append| WAL[Write-Ahead Log (Disk)]
-        MemTable -->|Check TTL| Expiry[TTL Manager]
+        Engine -->|Read/Write| MemTable["In-Memory Hash Map"]
+        Engine -->|Append| WAL["Write-Ahead Log (Disk)"]
+        MemTable -->|Check TTL| Expiry["TTL Manager"]
     end
     
     subgraph "Persistence Layer"
         WAL -->|Replay on Boot| MemTable
-        MemTable -->|Periodic Snapshot| RDB[Snapshot File (RDB)]
+        MemTable -->|Periodic Snapshot| RDB["Snapshot File (RDB)"]
     end
     
     subgraph "Distributed Layer (Phase 2)"
-        Engine -->|Replicate Log| Follower1[Follower Node 1]
-        Engine -->|Replicate Log| Follower2[Follower Node 2]
+        Engine -->|Replicate Log| Follower1["Follower Node 1"]
+        Engine -->|Replicate Log| Follower2["Follower Node 2"]
     end
 ```
 
